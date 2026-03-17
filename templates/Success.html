@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Patient Créé</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --blue:#005588; --blue-light:#e8f4fd; --border:#c8dcea; --bg:#f0f6fb; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+    .card { background:white; border:1px solid var(--border); border-radius:14px; padding:40px; max-width:500px; width:100%; text-align:center; box-shadow:0 4px 20px rgba(0,85,136,0.1); }
+    .icon { font-size:3rem; margin-bottom:16px; }
+    h2 { color:var(--blue); font-size:1.4rem; margin-bottom:8px; }
+    .id-badge { background:var(--blue); color:white; font-size:2rem; font-weight:700; padding:14px 30px; border-radius:10px; display:inline-block; margin:20px 0; letter-spacing:2px; }
+    p { color:#556677; font-size:0.9rem; margin-bottom:6px; }
+    .name { font-size:1.1rem; font-weight:600; color:#1a2a3a; margin-bottom:20px; }
+    .links { display:flex; flex-direction:column; gap:10px; margin-top:24px; }
+    .btn { padding:12px 20px; border-radius:8px; text-decoration:none; font-size:0.9rem; font-weight:500; transition:opacity 0.2s; }
+    .btn-primary { background:var(--blue); color:white; }
+    .btn-secondary { background:var(--blue-light); color:var(--blue); border:1px solid var(--border); }
+    .btn:hover { opacity:0.85; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">✅</div>
+    <h2>Dossier créé avec succès</h2>
+    <p class="name">{{ patient.nom_prenom }}</p>
+    <p>Numéro de dossier interne :</p>
+    <div class="id-badge">#{{ patient.id }}</div>
+    <p>Utilisez ce numéro pour lier les autres formulaires à ce patient.</p>
+    <div class="links">
+      <a class="btn btn-primary" href="/page2">→ Évaluation Pré-Opératoire</a>
+      <a class="btn btn-secondary" href="/page3">→ Données Paracliniques</a>
+      <a class="btn btn-secondary" href="/page4">→ Examen Complet</a>
+      <a class="btn btn-secondary" href="/pre">→ Recommandations Pré-Anesthésiques</a>
+      <a class="btn btn-secondary" href="/records">📋 Voir tous les dossiers</a>
+    </div>
+  </div>
+</body>
+</html>

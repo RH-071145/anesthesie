@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Dossier Patient</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --blue:#005588; --blue-light:#e8f4fd; --blue-mid:#0077aa; --border:#c8dcea; --bg:#f0f6fb; --white:#ffffff; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); padding:30px 20px; }
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .header h1 { color:var(--blue); font-size:1.3rem; }
+    .nav-bar { display:flex; gap:10px; flex-wrap:wrap; }
+    .nav-bar a { padding:8px 16px; background:var(--blue-light); color:var(--blue); border-radius:6px; text-decoration:none; font-size:0.85rem; font-weight:500; border:1px solid var(--border); }
+    .nav-bar a:hover { background:var(--blue); color:white; }
+    .patient-banner { background:var(--blue); color:white; border-radius:10px; padding:20px 24px; margin-bottom:24px; display:flex; gap:40px; flex-wrap:wrap; }
+    .patient-banner .field { display:flex; flex-direction:column; gap:2px; }
+    .patient-banner .label { font-size:0.75rem; opacity:0.75; }
+    .patient-banner .value { font-size:1rem; font-weight:600; }
+    .section { background:var(--white); border:1px solid var(--border); border-radius:10px; margin-bottom:20px; overflow:hidden; box-shadow:0 2px 8px rgba(0,85,136,0.06); }
+    .section-header { background:var(--blue-light); padding:12px 18px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+    .section-header h2 { font-size:0.95rem; font-weight:600; color:var(--blue); }
+    .header-actions { display:flex; gap:8px; align-items:center; }
+    .status { font-size:0.8rem; font-weight:600; padding:3px 12px; border-radius:20px; }
+    .status-ok { background:#d4edda; color:#155724; }
+    .status-no { background:#f8d7da; color:#721c24; }
+    .btn-modifier { padding:6px 16px; background:var(--blue); color:white; border-radius:6px; text-decoration:none; font-size:0.8rem; font-weight:500; white-space:nowrap; border:none; cursor:pointer; }
+    .btn-modifier:hover { background:var(--blue-mid); }
+    .btn-add { padding:6px 16px; background:#28a745; color:white; border-radius:6px; text-decoration:none; font-size:0.8rem; font-weight:500; white-space:nowrap; }
+    .btn-add:hover { background:#218838; }
+    .section-body { padding:18px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:14px; }
+    .field-item { display:flex; flex-direction:column; gap:3px; }
+    .field-item .lbl { font-size:0.75rem; font-weight:600; color:#889; text-transform:uppercase; letter-spacing:0.5px; }
+    .field-item .val { font-size:0.88rem; color:#1a2a3a; }
+    .full-width { grid-column:1/-1; }
+    .empty-section { color:#aaa; font-style:italic; font-size:0.85rem; padding:10px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Dossier #{{ patient.id }} — {{ patient.nom_prenom }}</h1>
+    <div class="nav-bar">
+      <a href="/records">← Dossiers</a>
+      <a href="/">Menu</a>
+    </div>
+  </div>
+
+  <div class="patient-banner">
+    <div class="field"><span class="label">Nom et Prénom</span><span class="value">{{ patient.nom_prenom }}</span></div>
+    <div class="field"><span class="label">Date de naissance</span><span class="value">{{ patient.date_naissance }}</span></div>
+    <div class="field"><span class="label">Sexe</span><span class="value">{{ patient.sexe }}</span></div>
+    <div class="field"><span class="label">Opérateur</span><span class="value">{{ patient.operateur }}</span></div>
+    <div class="field"><span class="label">Enregistré le</span><span class="value">{{ patient.date_enregistrement }}</span></div>
+  </div>
+
+  <!-- Page 1 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>📄 Dossier d'Anesthésie</h2>
+      <div class="header-actions">
+        <span class="status status-ok">✓ Complété</span>
+        <a class="btn-modifier" href="/edit/patient/{{ patient.id }}">✏️ Modifier</a>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="grid">
+        <div class="field-item"><span class="lbl">Dossier No</span><span class="val">{{ patient.dossier_no or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Hospitalisation</span><span class="val">{{ patient.hospitalisation or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Nature de l'acte</span><span class="val">{{ patient.nature_acte or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Date de l'acte</span><span class="val">{{ patient.date_acte or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Fait par</span><span class="val">{{ patient.fait_par or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Scores</span><span class="val">{{ patient.scores or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Diagnostic préopératoire</span><span class="val">{{ patient.diagnostic or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Codage</span><span class="val">{{ patient.codage or '—' }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page 2 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>🫀 Évaluation Pré-Opératoire</h2>
+      <div class="header-actions">
+        {% if patient.evaluation %}
+        <span class="status status-ok">✓ Complété</span>
+        <a class="btn-modifier" href="/edit/evaluation/{{ patient.id }}">✏️ Modifier</a>
+        {% else %}
+        <span class="status status-no">✗ Manquant</span>
+        <a class="btn-add" href="/edit/evaluation/{{ patient.id }}">+ Ajouter</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="section-body">
+      {% if patient.evaluation %}
+      {% set e = patient.evaluation %}
+      <div class="grid">
+        <div class="field-item"><span class="lbl">Poids</span><span class="val">{{ e.poids or '—' }} kg</span></div>
+        <div class="field-item"><span class="lbl">Taille</span><span class="val">{{ e.taille or '—' }} cm</span></div>
+        <div class="field-item"><span class="lbl">BMI</span><span class="val">{{ e.bmi or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Diurèse</span><span class="val">{{ e.diurese or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Cardio-vasculaire</span><span class="val">{{ e.cardio or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Auscultation cardiaque</span><span class="val">{{ e.auscultation_cardiaque or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Respiratoire</span><span class="val">{{ e.respiratoire or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Auscultation pulmonaire</span><span class="val">{{ e.auscultation_pulmonaire or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Endocrinologie</span><span class="val">{{ e.endocrino or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Hépato-biliaire</span><span class="val">{{ e.hepato or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Rénale</span><span class="val">{{ e.renale or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Neurologie</span><span class="val">{{ e.neuro or '—' }}</span></div>
+      </div>
+      {% else %}
+      <p class="empty-section">Aucune évaluation pré-opératoire enregistrée.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Page 3 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>🔬 Données Paracliniques</h2>
+      <div class="header-actions">
+        {% if patient.paraclinique %}
+        <span class="status status-ok">✓ Complété</span>
+        <a class="btn-modifier" href="/edit/paraclinique/{{ patient.id }}">✏️ Modifier</a>
+        {% else %}
+        <span class="status status-no">✗ Manquant</span>
+        <a class="btn-add" href="/edit/paraclinique/{{ patient.id }}">+ Ajouter</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="section-body">
+      {% if patient.paraclinique %}
+      {% set p = patient.paraclinique %}
+      <div class="grid">
+        <div class="field-item"><span class="lbl">Hb</span><span class="val">{{ p.hb or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Ht</span><span class="val">{{ p.ht or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">TP</span><span class="val">{{ p.tp or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">INR</span><span class="val">{{ p.inr or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Glycémie</span><span class="val">{{ p.glycemie or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Urée</span><span class="val">{{ p.uree or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Na⁺</span><span class="val">{{ p.na or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">K⁺</span><span class="val">{{ p.k or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">ECG</span><span class="val">{{ p.ecg or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Radio thorax</span><span class="val">{{ p.radio_thorax or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Écho cardiaque</span><span class="val">{{ p.echo_cardiaque or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Dr présent</span><span class="val">{{ p.dr_nom or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Technique</span><span class="val">{{ p.technique or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Monitoring</span><span class="val">{{ p.monitoring or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Antalgiques</span><span class="val">{{ p.antalgique or '—' }}</span></div>
+      </div>
+      {% else %}
+      <p class="empty-section">Aucune donnée paraclinique enregistrée.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Page 4 -->
+  <div class="section">
+    <div class="section-header">
+      <h2>📋 Examen Complet</h2>
+      <div class="header-actions">
+        {% if patient.examen %}
+        <span class="status status-ok">✓ Complété</span>
+        <a class="btn-modifier" href="/edit/examen/{{ patient.id }}">✏️ Modifier</a>
+        {% else %}
+        <span class="status status-no">✗ Manquant</span>
+        <a class="btn-add" href="/edit/examen/{{ patient.id }}">+ Ajouter</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="section-body">
+      {% if patient.examen %}
+      {% set ex = patient.examen %}
+      <div class="grid">
+        <div class="field-item full-width"><span class="lbl">Gastro-intestinal</span><span class="val">{{ ex.gastro or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Allergies</span><span class="val">{{ ex.allergies or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Hémostase</span><span class="val">{{ ex.hemostase or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Mallampati</span><span class="val">{{ ex.mallampati or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Rachis cervical</span><span class="val">{{ ex.rachis_cervical or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">ATCD chirurgicaux</span><span class="val">{{ ex.atcd_chir or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Traitements en cours</span><span class="val">{{ ex.traitements or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Type d'anesthésie</span><span class="val">{{ ex.anesthesie_type or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Conclusion</span><span class="val">{{ ex.conclusion or '—' }}</span></div>
+      </div>
+      {% else %}
+      <p class="empty-section">Aucun examen complet enregistré.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Pré-Anesthésie -->
+  <div class="section">
+    <div class="section-header">
+      <h2>💊 Recommandations Pré-Anesthésiques</h2>
+      <div class="header-actions">
+        {% if patient.recommandation %}
+        <span class="status status-ok">✓ Complété</span>
+        <a class="btn-modifier" href="/edit/recommandation/{{ patient.id }}">✏️ Modifier</a>
+        {% else %}
+        <span class="status status-no">✗ Manquant</span>
+        <a class="btn-add" href="/edit/recommandation/{{ patient.id }}">+ Ajouter</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="section-body">
+      {% if patient.recommandation %}
+      {% set r = patient.recommandation %}
+      <div class="grid">
+        <div class="field-item"><span class="lbl">Intervention</span><span class="val">{{ r.intervention or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Date intervention</span><span class="val">{{ r.date_intervention or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Opérateur</span><span class="val">{{ r.operateur or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Technique</span><span class="val">{{ r.technique or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Prémédication veille</span><span class="val">{{ r.premedication_veille or '—' }}</span></div>
+        <div class="field-item"><span class="lbl">Prémédication matin</span><span class="val">{{ r.premedication_matin or '—' }}</span></div>
+        <div class="field-item full-width"><span class="lbl">Examens demandés</span><span class="val">{{ r.examens_demandes or '—' }}</span></div>
+      </div>
+      {% else %}
+      <p class="empty-section">Aucune recommandation enregistrée.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</body>
+</html>
