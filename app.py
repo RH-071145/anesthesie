@@ -1,16 +1,34 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-
+from functools import wraps
 import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///anesthesie.db')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'hmpi-tunis-secret-2026')
 db = SQLAlchemy(app)
+
 # ── Models ────────────────────────────────────────────────────────────────────
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    nom_complet = db.Column(db.String(100))
+    created_at = db.Column(db.String(50))
+    patients = db.relationship('Patient', backref='user', lazy=True)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 class Patient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     dossier_no = db.Column(db.String(50))
     nom_prenom = db.Column(db.String(100))
     date_naissance = db.Column(db.String(50))
@@ -98,7 +116,20 @@ class RecommandationsPre(db.Model):
     technique = db.Column(db.String(100))
     date_enregistrement = db.Column(db.String(50))
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Auth Helpers ──────────────────────────────────────────────────────────────
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
+
+def current_user():
+    if 'user_id' in session:
+        return User.query.get(session['user_id'])
+    return None
 
 def get_hosp(form):
     return ", ".join(filter(None, [
@@ -117,18 +148,78 @@ def get_scores(form):
         "ISS" if form.get("iss") else "",
     ]))
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+def own_patient(patient_id):
+    """Return patient only if it belongs to logged-in user."""
+    p = Patient.query.get_or_404(patient_id)
+    if p.user_id != session['user_id']:
+        return None
+    return p
+
+# ── Auth Routes ───────────────────────────────────────────────────────────────
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('menu'))
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['nom_complet'] = user.nom_complet
+            return redirect(url_for('menu'))
+        error = "Identifiant ou mot de passe incorrect."
+    return render_template('login.html', error=error)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm', '')
+        nom_complet = request.form.get('nom_complet', '').strip()
+        if not username or not password or not nom_complet:
+            error = "Tous les champs sont obligatoires."
+        elif password != confirm:
+            error = "Les mots de passe ne correspondent pas."
+        elif len(password) < 6:
+            error = "Le mot de passe doit contenir au moins 6 caractères."
+        elif User.query.filter_by(username=username).first():
+            error = "Cet identifiant est déjà utilisé."
+        else:
+            user = User(username=username, nom_complet=nom_complet, created_at=datetime.now().strftime("%d/%m/%Y"))
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['nom_complet'] = user.nom_complet
+            return redirect(url_for('menu'))
+    return render_template('register.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# ── Main Routes ───────────────────────────────────────────────────────────────
 
 @app.route("/")
+@login_required
 def menu():
-    return render_template("menu.html")
-
-# ── Page 1 ────────────────────────────────────────────────────────────────────
+    user = current_user()
+    return render_template("menu.html", user=user)
 
 @app.route("/page1", methods=["GET", "POST"])
+@login_required
 def page1():
     if request.method == "POST":
         patient = Patient(
+            user_id=session['user_id'],
             dossier_no=request.form.get("dossier_no"),
             nom_prenom=request.form.get("nom_prenom"),
             date_naissance=request.form.get("date_naissance"),
@@ -150,8 +241,11 @@ def page1():
     return render_template("dossier anesthesie 111.html")
 
 @app.route("/edit/patient/<int:patient_id>", methods=["GET", "POST"])
+@login_required
 def edit_patient(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
+    patient = own_patient(patient_id)
+    if not patient:
+        return redirect(url_for('records'))
     if request.method == "POST":
         patient.dossier_no = request.form.get("dossier_no")
         patient.nom_prenom = request.form.get("nom_prenom")
@@ -170,11 +264,10 @@ def edit_patient(patient_id):
         return redirect(url_for('dossier_detail', patient_id=patient_id))
     return render_template("dossier anesthesie 111.html", patient=patient, edit=True)
 
-# ── Page 2 ────────────────────────────────────────────────────────────────────
-
 @app.route("/page2", methods=["GET", "POST"])
+@login_required
 def page2():
-    patients = Patient.query.order_by(Patient.id.desc()).all()
+    patients = Patient.query.filter_by(user_id=session['user_id']).order_by(Patient.id.desc()).all()
     if request.method == "POST":
         pid = request.form.get("patient_id")
         record = EvaluationPreop(
@@ -218,8 +311,11 @@ def page2():
     return render_template("dossier d'anesthesie 222.html", patients=patients)
 
 @app.route("/edit/evaluation/<int:patient_id>", methods=["GET", "POST"])
+@login_required
 def edit_evaluation(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
+    patient = own_patient(patient_id)
+    if not patient:
+        return redirect(url_for('records'))
     record = patient.evaluation
     if request.method == "POST":
         if not record:
@@ -262,11 +358,10 @@ def edit_evaluation(patient_id):
         return redirect(url_for('dossier_detail', patient_id=patient_id))
     return render_template("dossier d'anesthesie 222.html", patients=[], record=record, patient=patient, edit=True)
 
-# ── Page 3 ────────────────────────────────────────────────────────────────────
-
 @app.route("/page3", methods=["GET", "POST"])
+@login_required
 def page3():
-    patients = Patient.query.order_by(Patient.id.desc()).all()
+    patients = Patient.query.filter_by(user_id=session['user_id']).order_by(Patient.id.desc()).all()
     if request.method == "POST":
         pid = request.form.get("patient_id")
         record = DonneesParacliniques(
@@ -289,8 +384,11 @@ def page3():
     return render_template("dossier anesthesie 3333.html", patients=patients)
 
 @app.route("/edit/paraclinique/<int:patient_id>", methods=["GET", "POST"])
+@login_required
 def edit_paraclinique(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
+    patient = own_patient(patient_id)
+    if not patient:
+        return redirect(url_for('records'))
     record = patient.paraclinique
     if request.method == "POST":
         if not record:
@@ -315,11 +413,10 @@ def edit_paraclinique(patient_id):
         return redirect(url_for('dossier_detail', patient_id=patient_id))
     return render_template("dossier anesthesie 3333.html", patients=[], record=record, patient=patient, edit=True)
 
-# ── Page 4 ────────────────────────────────────────────────────────────────────
-
 @app.route("/page4", methods=["GET", "POST"])
+@login_required
 def page4():
-    patients = Patient.query.order_by(Patient.id.desc()).all()
+    patients = Patient.query.filter_by(user_id=session['user_id']).order_by(Patient.id.desc()).all()
     if request.method == "POST":
         pid = request.form.get("patient_id")
         record = ExamenComplet(
@@ -344,8 +441,11 @@ def page4():
     return render_template("dossier anesthesie 444.html", patients=patients)
 
 @app.route("/edit/examen/<int:patient_id>", methods=["GET", "POST"])
+@login_required
 def edit_examen(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
+    patient = own_patient(patient_id)
+    if not patient:
+        return redirect(url_for('records'))
     record = patient.examen
     if request.method == "POST":
         if not record:
@@ -367,11 +467,10 @@ def edit_examen(patient_id):
         return redirect(url_for('dossier_detail', patient_id=patient_id))
     return render_template("dossier anesthesie 444.html", patients=[], record=record, patient=patient, edit=True)
 
-# ── Pre ───────────────────────────────────────────────────────────────────────
-
 @app.route("/pre", methods=["GET", "POST"])
+@login_required
 def pre():
-    patients = Patient.query.order_by(Patient.id.desc()).all()
+    patients = Patient.query.filter_by(user_id=session['user_id']).order_by(Patient.id.desc()).all()
     if request.method == "POST":
         pid = request.form.get("patient_id")
         record = RecommandationsPre(
@@ -391,8 +490,11 @@ def pre():
     return render_template("pre insthesie.html", patients=patients)
 
 @app.route("/edit/recommandation/<int:patient_id>", methods=["GET", "POST"])
+@login_required
 def edit_recommandation(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
+    patient = own_patient(patient_id)
+    if not patient:
+        return redirect(url_for('records'))
     record = patient.recommandation
     if request.method == "POST":
         if not record:
@@ -409,21 +511,26 @@ def edit_recommandation(patient_id):
         return redirect(url_for('dossier_detail', patient_id=patient_id))
     return render_template("pre insthesie.html", patients=[], record=record, patient=patient, edit=True)
 
-# ── Records & Detail ──────────────────────────────────────────────────────────
-
 @app.route("/success/<int:patient_id>")
+@login_required
 def success(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
+    patient = own_patient(patient_id)
+    if not patient:
+        return redirect(url_for('records'))
     return render_template("success.html", patient=patient)
 
 @app.route("/records")
+@login_required
 def records():
-    patients = Patient.query.order_by(Patient.id.desc()).all()
+    patients = Patient.query.filter_by(user_id=session['user_id']).order_by(Patient.id.desc()).all()
     return render_template("records.html", patients=patients)
 
 @app.route("/dossier/<int:patient_id>")
+@login_required
 def dossier_detail(patient_id):
-    patient = Patient.query.get_or_404(patient_id)
+    patient = own_patient(patient_id)
+    if not patient:
+        return redirect(url_for('records'))
     return render_template("dossier_detail.html", patient=patient)
 
 if __name__ == "__main__":
