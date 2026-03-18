@@ -174,32 +174,64 @@ def login():
         error = "Identifiant ou mot de passe incorrect."
     return render_template('login.html', error=error)
 
+from flask import render_template, redirect, url_for, flash, request, session
+from datetime import datetime
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    error = None
+    if 'user_id' in session:           # Prevent logged-in user from accessing register
+        return redirect(url_for('menu'))
+
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
+        nom_complet = request.form.get('nom_complet', '').strip()
         password = request.form.get('password', '')
         confirm = request.form.get('confirm', '')
-        nom_complet = request.form.get('nom_complet', '').strip()
-        if not username or not password or not nom_complet:
-            error = "Tous les champs sont obligatoires."
-        elif password != confirm:
-            error = "Les mots de passe ne correspondent pas."
-        elif len(password) < 6:
-            error = "Le mot de passe doit contenir au moins 6 caractères."
-        elif User.query.filter_by(username=username).first():
-            error = "Cet identifiant est déjà utilisé."
-        else:
-            user = User(username=username, nom_complet=nom_complet, created_at=datetime.now().strftime("%d/%m/%Y"))
+
+        # Validation
+        if not username or not nom_complet or not password or not confirm:
+            flash("Tous les champs sont obligatoires.", "danger")
+            return render_template('register.html')
+
+        if password != confirm:
+            flash("Les mots de passe ne correspondent pas.", "danger")
+            return render_template('register.html')
+
+        if len(password) < 6:
+            flash("Le mot de passe doit contenir au moins 6 caractères.", "danger")
+            return render_template('register.html')
+
+        if User.query.filter_by(username=username).first():
+            flash("Cet identifiant est déjà utilisé.", "danger")
+            return render_template('register.html')
+
+        # Create new user
+        try:
+            user = User(
+                username=username,
+                nom_complet=nom_complet,
+                created_at=datetime.now().strftime("%d/%m/%Y")
+            )
             user.set_password(password)
+
             db.session.add(user)
             db.session.commit()
+
+            # Log the user in automatically
             session['user_id'] = user.id
             session['username'] = user.username
             session['nom_complet'] = user.nom_complet
+
+            flash("Compte créé avec succès !", "success")
             return redirect(url_for('menu'))
-    return render_template('register.html', error=error)
+
+        except Exception as e:
+            db.session.rollback()
+            flash("Une erreur est survenue lors de la création du compte.", "danger")
+            return render_template('register.html')
+
+    # GET request
+    return render_template('register.html')
 
 @app.route('/logout')
 def logout():
