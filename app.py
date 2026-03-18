@@ -195,7 +195,6 @@ def login():
         error = "Identifiant ou mot de passe incorrect."
     return render_template('login.html', error=error)
 
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if 'user_id' in session:
@@ -207,44 +206,44 @@ def register():
         password = request.form.get('password', '')
         confirm = request.form.get('confirm', '')
 
+        print("=== REGISTER DEBUG ===")          # ← Add this
+        print("Username:", username)
+        print("Nom complet:", nom_complet)
+        print("Password length:", len(password))
+        print("Confirm length:", len(confirm))
+        print("=====================")
+
+        # Validation
         if not username or not nom_complet or not password or not confirm:
             flash("Tous les champs sont obligatoires.", "danger")
-            return render_template('register.html')
-
-        if password != confirm:
+        elif password != confirm:
             flash("Les mots de passe ne correspondent pas.", "danger")
-            return render_template('register.html')
-
-        if len(password) < 6:
+        elif len(password) < 6:
             flash("Le mot de passe doit contenir au moins 6 caractères.", "danger")
-            return render_template('register.html')
-
-        if User.query.filter_by(username=username).first():
+        elif User.query.filter_by(username=username).first():
             flash("Cet identifiant est déjà utilisé.", "danger")
-            return render_template('register.html')
+        else:
+            try:
+                user = User(
+                    username=username,
+                    nom_complet=nom_complet,
+                    created_at=datetime.now().strftime("%d/%m/%Y")
+                )
+                user.set_password(password)
 
-        try:
-            user = User(
-                username=username,
-                nom_complet=nom_complet,
-                created_at=datetime.now().strftime("%d/%m/%Y")
-            )
-            user.set_password(password)
+                db.session.add(user)
+                db.session.commit()
 
-            db.session.add(user)
-            db.session.commit()
+                session['user_id'] = user.id
+                session['username'] = user.username
+                session['nom_complet'] = user.nom_complet
 
-            session['user_id'] = user.id
-            session['username'] = user.username
-            session['nom_complet'] = user.nom_complet
+                flash("Compte créé avec succès ! Bienvenue", "success")
+                return redirect(url_for('page1'))        # ← Changed to page1
 
-            flash("Compte créé avec succès !", "success")
-            return redirect(url_for('menu'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash("Une erreur est survenue lors de la création du compte.", "danger")
-            return render_template('register.html')
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Erreur serveur: {str(e)}", "danger")
 
     return render_template('register.html')
 
