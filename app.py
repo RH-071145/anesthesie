@@ -19,18 +19,19 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     nom_complet = db.Column(db.String(100))
     created_at = db.Column(db.String(50))
-    patients = db.relationship('Patient', backref='user', lazy=True)
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+    # Fixed relationship
+    patients = db.relationship('Patient', backref='doctor', lazy=True)   # changed backref
 
 
 class Patient(db.Model):
+    __tablename__ = 'patient'          # Optional but recommended
+
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # FIXED: ForeignKey must point to the real table name 'doctors'
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
+    
     dossier_no = db.Column(db.String(50))
     nom_prenom = db.Column(db.String(100))
     date_naissance = db.Column(db.String(50))
@@ -45,11 +46,12 @@ class Patient(db.Model):
     scores = db.Column(db.String(300))
     codage = db.Column(db.Text)
     date_enregistrement = db.Column(db.String(50))
+
+    # Relationships to other tables (these were already correct)
     evaluation = db.relationship('EvaluationPreop', backref='patient', uselist=False)
     paraclinique = db.relationship('DonneesParacliniques', backref='patient', uselist=False)
     examen = db.relationship('ExamenComplet', backref='patient', uselist=False)
     recommandation = db.relationship('RecommandationsPre', backref='patient', uselist=False)
-
 
 class EvaluationPreop(db.Model):
     id = db.Column(db.Integer, primary_key=True)
