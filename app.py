@@ -390,11 +390,8 @@ def dossier_detail(patient_id):
     return render_template("dossier_detail.html", patient=patient)
 
 
-# ========================== RUN APP ==========================
+with app.app_context():
+    db.create_all()
+
 if __name__ == "__main__":
-    with app.app_context():
-        db.drop_all()      # Deletes all old tables
-        db.create_all()    # Creates all tables fresh (including 'doctors')
-        print("✅ All tables created successfully on PostgreSQL!")
-    
     app.run(debug=True)
