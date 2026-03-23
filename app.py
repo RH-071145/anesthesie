@@ -29,7 +29,6 @@ class User(db.Model):
 
 
 class Patient(db.Model):
-    __tablename__ = 'patients'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('doctors.id'), nullable=False)
     dossier_no = db.Column(db.String(50))
@@ -53,9 +52,8 @@ class Patient(db.Model):
 
 
 class EvaluationPreop(db.Model):
- __tablename__ = 'evaluation_preop'
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'))
+    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     poids = db.Column(db.String(20))
     taille = db.Column(db.String(20))
     bmi = db.Column(db.String(20))
@@ -74,7 +72,6 @@ class EvaluationPreop(db.Model):
 
 
 class DonneesParacliniques(db.Model):
-	 __tablename__ = 'donnees_paracliniques'
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     hb = db.Column(db.String(20))
@@ -96,7 +93,6 @@ class DonneesParacliniques(db.Model):
 
 
 class ExamenComplet(db.Model):
-	 __tablename__ = 'examen_complet'
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     gastro = db.Column(db.String(300))
@@ -115,7 +111,6 @@ class ExamenComplet(db.Model):
 
 
 class RecommandationsPre(db.Model):
-	  __tablename__ = 'recommandations_pre'
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     intervention = db.Column(db.String(200))
